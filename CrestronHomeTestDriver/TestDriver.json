@@ -1,0 +1,57 @@
+{
+  "CrestronSerialDeviceApi": {
+    "DeviceSupport": {},
+    "DeviceSupport2": [],
+    "GeneralInformation": {
+      "DeviceType": "Jonathan_TestDriver",
+      "Manufacturer": "Jonathan",
+      "BaseModel": "Jonathan_Demo",
+      "VersionDate": "2021-04-28 12:31:35.000",
+      "DriverVersion": "8.0000.0015",
+      "SdkVersion": "3.0.0",
+      "Description": "Lock",
+      "Guid": "cf312b6a-32ca-4735-8686-96a1900ef0b3",
+      "ExtensionDeviceData": {
+        "IsExtensionDevice": true,
+        "IsMediaDevice": false,
+        "IsMediaSource": false
+      },
+      "SupportedSeries": [ "Example Series" ],
+      "SupportedModels": [ "Jonathan_Demo" ]
+    },
+    "Api": {
+      "Communication": {
+        "CommunicationType": 1,
+        "Protocol": -1,
+        "Baud": -1,
+        "Parity": -1,
+        "HwHandshake": -1,
+        "SwHandshake": -1,
+        "DataBits": 0,
+        "StopBits": -1,
+        "Port": 2002,
+        "EnableAutoPolling": true,
+        "EnableAutoReconnect": true,
+        "TimeBetweenCommands": 250,
+        "ResponseTimeout": 3000,
+        "WaitForResponse": false,
+        "IpProtocol": 0,
+        "IsUserAdjustable": false,
+        "Authentication": {
+          "Type": "None",
+          "Required": false
+        },
+        "IsSecure": false,
+        "UserAdjustableProperties": [],
+        "DeviceId": 0,
+        "CustomCommand": [
+          {
+            "Name": "test",
+            "Command": "Hello World"
+          }
+        ]
+      }
+    },
+    "UserAttributes": []
+  }
+}
