@@ -187,10 +187,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Emulator\LightEmulator.cs" />
+    <Compile Include="Model\LutronLightingLoad.cs" />
     <Compile Include="TestDriver.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="TestDriverProtocol.cs" />
+    <Compile Include="LutronHWQSTelnetProtocol.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="TestDriver.json" />

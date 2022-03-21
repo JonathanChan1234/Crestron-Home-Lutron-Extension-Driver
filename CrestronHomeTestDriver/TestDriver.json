@@ -52,6 +52,20 @@
         ]
       }
     },
-    "UserAttributes": []
+    "UserAttributes": [
+      {
+        "TypeName": "Custom",
+        "ParameterId": "IntegrationId",
+        "Label": "The integration ID of the device",
+        "Description": "This is required for Crestron system to communicate with the Lutron System",
+        "Persistent": true,
+        "RequiredForConnection": "Before",
+        "Data": {
+          "DataType": "Number",
+          "Mask": "",
+          "DefaultValue": ""
+        }
+      }
+    ]
   }
 }

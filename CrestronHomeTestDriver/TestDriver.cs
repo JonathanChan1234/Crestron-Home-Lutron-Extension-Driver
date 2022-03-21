@@ -6,14 +6,15 @@ using Crestron.RAD.Common.Transports;
 using Crestron.RAD.DeviceTypes.ExtensionDevice;
 using Crestron.SimplSharp;
 using Crestron.SimplSharpPro.CrestronThread;
-using CrestronHomeTestDriver.Emulator;
 using System;
+using CrestronHomeTestDriver.Model;
 
 namespace CrestronHomeTestDriver
 {
     public class TestDriver : AExtensionDevice, ITcp
     {
         #region constant
+
         // Property Key
         private const string LightIconKey = "LightIcon";
         private const string BatteryIconKey = "BatteryIcon";
@@ -41,11 +42,8 @@ namespace CrestronHomeTestDriver
         private PropertyValue<int> _lightLevelProperty;
         #endregion
 
-        private LightEmulator _lightEmulator;
-        private TestDriverProtocol _testDriverProtocol;
-
-        private string _ipAddress;
-        private int _port;
+        private LutronLightingLoad _load;
+        private LutronHWQSTelnetProtocol _protocol;
 
         #region constructor
         public TestDriver()
@@ -71,40 +69,14 @@ namespace CrestronHomeTestDriver
             _lightLevelProperty = CreateProperty<int>(new PropertyDefinition(LightLevelKey, null, DevicePropertyType.Int32, 0, 100, 1));
         }
 
-        private void Refresh()
-        {
-            _lightIconProperty.Value = _lightEmulator.Power ? LightOnIcon : LightOffIcon;
-            _batteryIconProperty.Value = BatteryNormalIcon;
-            _lightStatusProperty.Value = _lightEmulator.Power;
-            _lightStatusLabelProperty.Value = _lightEmulator.Power ? "ON" : "OFF";
-            _lightLevelProperty.Value = _lightEmulator.Brightness;
-            Commit();
-        }
-
         public void AddCapabilities()
         {
             var tcp2Capability = new Tcp2Capability(Initialize);
             Capabilities.RegisterInterface(typeof(ITcp2), tcp2Capability);
         }
 
-        public override void Connect()
-        {
-            Connected = true;
-            ConnectionTransport.Start();
-            Refresh();
-        }
-
         public void Initialize(IPAddress ipAddress, int port)
         {
-            if (EnableLogging)
-            {
-                Log($"IP Address: {ipAddress}");
-                Log($"Port: {port}");
-            }
-            _ipAddress = ipAddress.ToString();
-            _port = port;
-            _lightEmulator = new LightEmulator();
-            _lightEmulator.StateChangedEvent += LightEmulatorEventHandler;
             var tcpTransport = new TcpTransport
             {
                 EnableAutoReconnect = EnableAutoReconnect,
@@ -115,13 +87,15 @@ namespace CrestronHomeTestDriver
             };
             tcpTransport.Initialize(ipAddress, port);
             ConnectionTransport = tcpTransport;
-            _testDriverProtocol = new TestDriverProtocol(tcpTransport, Id)
+            _protocol = new LutronHWQSTelnetProtocol(tcpTransport, Id)
             {
                 EnableLogging = EnableLogging,
                 CustomLogger = CustomLogger
             };
-            _testDriverProtocol.IsConnectionChange += ConnectionChangeHandler;
-            DeviceProtocol = _testDriverProtocol;
+            _protocol.IsConnectionChange += ConnectionChangeHandler;
+            DeviceProtocol = _protocol;
+            _load = new LutronLightingLoad(_protocol);
+            _load.StateChangedEvent += LightLoadChangedEventHandler;
         }
 
         private void ConnectionChangeHandler(object sender, Crestron.RAD.Common.Events.ValueEventArgs<bool> e)
@@ -131,16 +105,6 @@ namespace CrestronHomeTestDriver
 
         private void Initialize(string address, int port)
         {
-            if (EnableLogging)
-            {
-                Log($"IP Address: {address}");
-                Log($"Port: {port}");
-            }
-            _ipAddress = address;
-            _port = port;
-            _lightEmulator = new LightEmulator();
-            _lightEmulator.StateChangedEvent += LightEmulatorEventHandler;
-
             var tcpTransport = new TcpTransport
             {
                 EnableAutoReconnect = EnableAutoReconnect,
@@ -151,15 +115,32 @@ namespace CrestronHomeTestDriver
             };
             tcpTransport.Initialize(address, port);
             ConnectionTransport = tcpTransport;
-            _testDriverProtocol = new TestDriverProtocol(tcpTransport, Id)
+            _protocol = new LutronHWQSTelnetProtocol(tcpTransport, Id)
             {
                 EnableLogging = EnableLogging,
                 CustomLogger = CustomLogger
             };
-            DeviceProtocol = _testDriverProtocol;
+            DeviceProtocol = _protocol;
+            _load = new LutronLightingLoad(_protocol);
+            _load.StateChangedEvent += LightLoadChangedEventHandler;
+        }
+        public override void Connect()
+        {
+            Connected = true;
+            ConnectionTransport.Start();
+            Refresh();
+        }
+        private void Refresh()
+        {
+            _lightIconProperty.Value = _load.Power ? LightOnIcon : LightOffIcon;
+            _batteryIconProperty.Value = BatteryNormalIcon;
+            _lightStatusProperty.Value = _load.Power;
+            _lightStatusLabelProperty.Value = _load.Power ? "ON" : "OFF";
+            _lightLevelProperty.Value = _load.Brightness;
+            Commit();
         }
 
-        private void LightEmulatorEventHandler(object sender, LightEmulatorEventArgs e)
+        private void LightLoadChangedEventHandler(object sender, LutronLightingEventArgs e)
         {
             switch (e.EventType)
             {
@@ -187,12 +168,12 @@ namespace CrestronHomeTestDriver
                 case LightStatusKey:
                     var status = value as bool?;
                     if (status == null) return new OperationResult(OperationResultCode.Error, "The value provided cannot be converted to bool");
-                    _lightEmulator.SetPowerState((bool)status);
+                    _load.SetPowerState((bool)status);
                     return new OperationResult(OperationResultCode.Success);
                 case LightLevelKey:
                     var brightness = value as int?;
                     if (brightness == null) return new OperationResult(OperationResultCode.Error, "The value provided cannot be converted to int");
-                    _lightEmulator.SetBrightness((int)brightness);
+                    _load.SetBrightness((int)brightness);
                     return new OperationResult(OperationResultCode.Success);
             }
             return new OperationResult(OperationResultCode.Success);
@@ -218,14 +199,7 @@ namespace CrestronHomeTestDriver
             switch (command)
             {
                 case ToggleLightAction:
-                    if (EnableLogging)
-                    {
-                        Log($"IP address: {_ipAddress}");
-                        Log($"Port: {_port}");
-                        Log($"TCP Client Status: {ConnectionTransport.IsConnected}");
-                    }
-                    bool power = _lightEmulator.ToggleLight();
-                    _testDriverProtocol.SendCmd($"#OUTPUT,15,1,{(power ? 100 : 0)},2,0");
+                    _load.ToggleLight();
                     break;
                 default:
                     Log("invalid command");
